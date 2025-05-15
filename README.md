@@ -1,55 +1,89 @@
-# 🧠 Context Initial Orchestrator (Langchain + Gemini)
+# LLM Categorizer con Orquestador y Clasificación Inteligente
 
-## 🧩 Objetivo General
+Este proyecto es una demo funcional de un sistema inteligente que responde consultas en lenguaje natural basándose en documentos cargados por el usuario. Integra recuperación semántica, clasificación automática y generación de respuestas con el modelo Gemini 1.5 de Google.
 
-Permitir que un workflow definido en YAML inicialice un contexto de ejecución que podrá ser utilizado por los siguientes nodos del pipeline de LangChain con Gemini.
+## Funcionalidad principal
 
----
+- Carga de documentos `.txt` o `.pdf` desde `data/documentos_raw/`.
+- Fragmentación y vectorización con embeddings de Hugging Face (`all-MiniLM-L6-v2`).
+- Indexación con FAISS para búsqueda semántica.
+- Clasificación automática de la intención de la consulta (materiales, precios, logística, etc.).
+- Orquestador basado en YAML que inicializa el contexto del flujo.
+- Generación de respuesta contextualizada usando `gemini-2.0-flash` vía REST API.
 
-## 🔧 Componentes Clave
+## Estructura de archivos
 
-### 1. Parser de YAML del Workflow
-- Lee la definición del workflow y valida su estructura.
-- Reconoce el nodo `"Context Initial"` con clave `context`.
+```
+SistCategorización/
+├── app/
+│   ├── main.py                  # Interfaz por consola
+│   ├── orchestrator.py          # Flujo de ejecución con LangChain
+│   ├── context_initializer.py   # Carga de contexto desde workflow.yaml
+│   ├── categorize.py            # Clasificador de intención con fallback
+│   ├── generate_embeddings.py   # Procesamiento de documentos y FAISS
+│   ├── search_docs.py           # Búsqueda de fragmentos relevantes
+│   ├── generate_response.py     # Llamada a Gemini con prompt personalizado
+│   └── config.py                # Carga de clave desde .env
+├── data/documentos_raw/        # Documentos de entrada
+├── vectorstore/                # Almacenamiento del índice FAISS
+├── workflow.yaml               # Definición del nodo Context Initial
+├── requirements.txt
+└── .env                        # Clave de API: GEMINI_API_KEY
+```
 
-### 2. Validador de Nodo "Context Initial"
-- Valida existencia y estructura del campo `context`.
-- Acepta:
-  - Diccionarios simples
-  - Estructuras anidadas
-  - Valor vacío/ausente → `{}`
+## Cómo usarlo
 
-### 3. Context Manager
-- Almacena el contexto global durante la ejecución del workflow.
-- Métodos: `get_context()`, `update_context()`, `reset_context()`
+1. Crear `.env` con:
 
-### 4. Runtime Engine
-- Ejecuta nodos secuencialmente.
-- Cada nodo accede al contexto y puede modificarlo.
+   ```
+   GEMINI_API_KEY=tu_clave_gemini
+   ```
 
----
+2. Asegurarse de tener documentos en `data/documentos_raw/`.
 
-## ✅ Escenarios de Prueba
+3. Instalar dependencias:
 
-| Escenario | Descripción |
-|----------|-------------|
-| 1 | Inicialización exitosa con contexto simple |
-| 2 | Inicialización exitosa con contexto complejo |
-| 3 | Inicialización sin contexto explícito (vacío) |
-| 4 | Contexto accesible por nodo siguiente |
-| 5 | Configuración inválida lanza error |
+   ```bash
+   pip install -r requirements.txt
+   ```
 
----
+4. Entrenar el clasificador (opcional):
 
-## 📦 Estructura YAML esperada
+   Ejecutar `Entrenamiento_Categorizador.ipynb` y guardar `modelo_categoria.pkl` en `/app`.
+
+5. Ejecutar:
+
+   ```bash
+   cd app
+   python main.py
+   ```
+
+6. Escribir una pregunta y recibir la respuesta generada por Gemini con contexto.
+
+## Context Initial Orchestrator
+
+El flujo se configura desde `workflow.yaml`, permitiendo:
+
+- Iniciar con contexto simple o complejo
+- Compartir datos iniciales con el pipeline
+- Controlar el comportamiento de generación según la configuración
+
+## Ejemplo de contexto en YAML
 
 ```yaml
-workflow:
-  - type: context_initial
+nodes:
+  Context Initial:
     context:
-      user_id: 123
-      session_data:
-        language: "es"
-        level: "advanced"
-  - type: agent_node
-    action: generate_response
+      cliente: "Customer A"
+      categoria: "materiales"
+      prioridad: "alta"
+```
+
+## Categorías actuales
+
+- materiales
+- precios
+- logística
+- otros
+
+Si no se encuentra el modelo entrenado, se usa una heurística por palabras clave como fallback.
