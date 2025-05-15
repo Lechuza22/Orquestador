@@ -1,0 +1,11 @@
+# workflow.yaml (ejemplo)
+
+nodes:
+  Context Initial:
+    context:
+      cliente: "Customer A"
+      categoria: "materiales"
+      prioridad: "alta"
+      metadata:
+        tags: ["construcción", "consulta"]
+        origen: "chat_web"
