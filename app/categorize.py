@@ -1,33 +1,47 @@
 # app/categorize.py
 
-from joblib import load
 import os
+import logging
+from joblib import load
 
-# Ruta al modelo entrenado
+# Configurar logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="🧩 %(levelname)s | %(message)s"
+)
+
+# Ruta del modelo entrenado
 modelo_path = os.path.join(os.path.dirname(__file__), "modelo_categoria.pkl")
 
-# Verificación y carga del modelo
+# Intentar cargar el modelo entrenado
 try:
     modelo = load(modelo_path)
+    logging.info("Modelo de categorización cargado correctamente.")
 except FileNotFoundError:
-    print("[!] No se encontró el archivo 'modelo_categoria.pkl'. Se usará fallback por palabra clave.")
     modelo = None
+    logging.warning("No se encontró el modelo 'modelo_categoria.pkl'. Usando fallback por palabras clave.")
 
-# Fallback simple en caso de que el modelo no esté
+# Función de fallback con reglas básicas
 def fallback_categorizar(pregunta: str) -> str:
     pregunta = pregunta.lower()
     if any(p in pregunta for p in ["material", "cemento", "techos", "ladrillo"]):
         return "materiales"
-    elif any(p in pregunta for p in ["precio", "costos", "cuánto"]):
+    elif any(p in pregunta for p in ["precio", "costos", "cuánto", "vale"]):
         return "precios"
-    elif any(p in pregunta for p in ["entrega", "envío", "logística"]):
+    elif any(p in pregunta for p in ["entrega", "envío", "logística", "reparto"]):
         return "logística"
     else:
         return "otros"
 
 # Función principal
 def categorizar_consulta(pregunta: str) -> str:
+    logging.debug(f"Consulta recibida para categorizar: '{pregunta}'")
+
     if modelo:
-        return modelo.predict([pregunta])[0]
+        categoria = modelo.predict([pregunta])[0]
+        logging.info(f"Categoría predicha por el modelo: {categoria}")
+        return categoria
     else:
-        return fallback_categorizar(pregunta)
+        categoria = fallback_categorizar(pregunta)
+        logging.info(f"Categoría determinada por fallback: {categoria}")
+        return categoria
